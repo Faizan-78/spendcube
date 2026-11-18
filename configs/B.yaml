@@ -1,0 +1,57 @@
+# Company B: metal packaging manufacturer. One AP line file from 8 ERPs, 25 currencies, reporting in USD.
+company: B
+reporting_currency: USD
+
+taxonomy:
+  file: taxonomy_B.csv
+  levels: [category_l1, category_l2, category_l3]
+
+reference_dir: data/company_B
+
+sources:
+  - name: AP
+    file: invoice_lines.csv
+    id_column: line_id
+    fields:
+      amount: line_amount
+      currency: currency
+      fx_rate: currency_rate          # units of the line currency per 1 USD
+      date: invoice_date              # FX month; falls back to posting_date when missing/implausible
+      alt_dates: [posting_date]
+      supplier_id: vendor_id
+      description: [line_description]
+      item_code: material_number
+      quantity: quantity
+      po: po_number
+      po_line: po_line
+      invoice_number: invoice_number
+      gl_account: gl_account
+      gl_description: gl_account_description
+    amount: {basis: net}
+    classify:
+      categorical: [supplier_type, po_type, transport_flag, document_type, source_system, cost_centre, plant]
+
+fx:
+  file: fx_rates_usd.csv
+  currency_column: currency
+  month_column: month
+  rate_column: units_per_usd
+  quote: units_per_reporting
+  rate_sanity_factor: 3               # a line rate more than 3x away from the monthly table is replaced by the table
+
+duplicates:
+  exact_rows: true                    # rows identical in every column except line_id
+
+non_procurement:
+  use_builtin: true
+  rules:
+    - name: intercompany_account      # B's JDE ledgers name intercompany payables IC05, IC06, ...
+      fields: [gl_desc]
+      regex: '^\s*IC\d+\s*$'
+
+labels:
+  file: seed_labels.csv
+  id_column: line_id
+  levels: [category_l1, category_l2, category_l3]
+  include_column: include
+  learn_exclusions: true

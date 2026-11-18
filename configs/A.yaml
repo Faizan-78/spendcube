@@ -1,0 +1,68 @@
+# Company A: mining operations of a chemicals group. Two systems: SAP goods receipts + accounts-payable tool.
+company: A
+reporting_currency: ZAR
+
+taxonomy:
+  file: taxonomy_A.csv
+  levels: [category_l1, category_l2, category_l3]
+
+# Earlier, labelled data of the same company. Used to train the classifier when the run folder itself
+# has no labels (blind test A2). Ignored when it is the run folder or does not exist.
+reference_dir: data/company_A
+
+sources:
+  - name: ERP                         # system of record: every record is counted
+    file: erp_goods_receipts.csv
+    id_column: line_id
+    record_prefix: "ERP:"
+    fields:
+      amount: value_zar               # already net, already in ZAR (document_currency is informational)
+      date: posting_date
+      supplier_name: supplier_name
+      supplier_id: vendor_id
+      description: [material_short_text, service_short_text]
+      item_code: material_number
+      item_text: [material_short_text]   # the item itself; service text describes the job, not the item
+      quantity: quantity
+      po: po_number
+      po_line: po_item
+    amount: {basis: net, currency: reporting}
+    classify:
+      text: [material_type, spend_type]
+      categorical: [material_type, spend_type, contract_number, site_name, cost_centre]
+
+  - name: TOOL                        # accounts-payable tool: OCR'd, gross, may repeat ERP records
+    file: invoice_tool_export.csv
+    id_column: tool_record_id
+    record_prefix: "TOOL:"
+    fields:
+      amount: gross_amount
+      tax_rate: vat_rate
+      currency: currency
+      date: invoice_date
+      supplier_name: supplier_name_as_captured
+      description: [line_text]
+      quantity: quantity
+      po: po_reference
+      invoice_number: invoice_number
+      status: status
+    amount: {basis: gross, default_tax_rate: 0.15}
+    po_pattern: '(\d{10})(?:\s*/\s*(\d+))?'      # "PO#4510040036", "4510005953/10.0" -> PO, PO line
+
+duplicates:
+  repeated_export:                    # the same invoice line exported more than once by the tool
+    TOOL: [supplier, invoice_number, net_amount, quantity]
+
+match:                                # the same purchase in both systems: count ERP, exclude TOOL as DUPLICATE
+  count: ERP
+  against: TOOL
+  amount_tolerance: 0.02
+  default_tax_rate: 0.15
+  sequence_hint: true
+
+labels:
+  file: labels_A.csv
+  id_column: record_id
+  levels: [category_l1, category_l2, category_l3]
+  supplier_key_column: supplier_key   # client's golden keys guide de-duplication of new records
+  item_key_column: item_key

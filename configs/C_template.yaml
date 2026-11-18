@@ -1,0 +1,61 @@
+# Template for a new company (blind-test company C). Easiest start:
+#   python suggest_config.py --file <C folder>/<lines>.csv --taxonomy <C folder>/<tree>.csv --company C > submission/C.yaml
+# then check every line against this template.
+company: C
+reporting_currency: USD
+
+taxonomy:
+  file: taxonomy_C.csv                       # up to 4 levels; ragged trees are fine
+  levels: [category_l1, category_l2, category_l3, category_l4]
+
+sources:
+  - name: LINES
+    file: invoice_lines.csv
+    id_column: line_id                       # output record_id
+    fields:
+      amount: line_amount
+      tax_rate: null                         # only for gross amounts
+      currency: currency                     # omit if every line is in reporting currency
+      fx_rate: null                          # units of line currency per 1 reporting unit, if given per line
+      date: invoice_date
+      alt_dates: [posting_date]              # used for FX when `date` is missing/implausible
+      supplier_name: supplier_name
+      supplier_id: vendor_id
+      description: [line_description]        # one or more text columns
+      item_code: material_number
+      quantity: quantity
+      po: po_number
+      invoice_number: invoice_number
+      status: status                         # omit if none
+      gl_account: gl_account
+      gl_description: gl_account_description
+    amount: {basis: net}                     # gross: {basis: gross, default_tax_rate: 0.15}
+    classify:
+      text: []                               # extra free-text context (e.g. cost-centre names)
+      categorical: []                        # low-cardinality context (plant, document type, supplier type)
+
+# fx:                                        # monthly table when lines lack rates
+#   file: fx_rates_usd.csv
+#   currency_column: currency
+#   month_column: month
+#   rate_column: units_per_usd
+#   quote: units_per_reporting               # or reporting_per_unit
+
+duplicates:
+  exact_rows: true
+  # repeated_export:
+  #   LINES: [supplier, invoice_number, net_amount, quantity]
+
+# status_map:                                # extra status words, if the log warns about unknown values
+#   NOT_APPROVED: [parked]
+#   INCLUDE: [booked]
+
+# non_procurement:
+#   rules:
+#     - name: own_ledger_code
+#       fields: [gl_desc]
+#       regex: '^\s*IC\d+\s*$'
+#   company_names: []                        # the company's own entities (intercompany when they appear as supplier)
+#   disable: []                              # names of built-in rules to switch off
+
+# llm: {model: claude-haiku-5-5, max_items: 1500}

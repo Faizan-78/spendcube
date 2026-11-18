@@ -1,0 +1,14 @@
+# task data is confidential: never commit it
+data/
+*.xlsx
+*.xls
+/company_*/
+labels_*.csv
+seed_labels.csv
+# working files
+audit/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+*.pkl

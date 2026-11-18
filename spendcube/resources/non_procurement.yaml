@@ -1,0 +1,54 @@
+# Built-in, company-independent patterns for "real money, but not spend with a third-party supplier".
+# Each rule: fields it reads, a case-insensitive regex, an optional "unless" regex (services ABOUT the
+# topic are still spend, e.g. "tax advisory"), and "guard" words: if the company's category tree has a
+# category containing a guard word, the rule is switched off for that company (the tree says it is spend).
+# Free-text descriptions use anchored patterns (the line must BE the thing); account descriptions may match anywhere.
+rules:
+  - name: intercompany
+    fields: [gl_desc, desc, ctx_text, supplier_name]
+    regex: '\b(inter[\s-]?co(mpany)?|intra[\s-]?group|inter[\s-]?group|intragrup\w*|i/c|ic\s+(payables?|receivables?|recharges?|charges?|settlement)|related[\s-]part(y|ies)|group recharge|konzernintern\w*|verbundene unternehmen|intercompa\w+|entre compa\w+|empresas do grupo|soci[eé]t[eé]s? du groupe)\b'
+  - name: tax_account
+    fields: [gl_desc, ctx_text]
+    regex: '\b(vat|gst|hst|pst|qst|iva|tva|mwst|ust|icms|cofins|withholding|wht|tds|sales tax|use tax|input tax|output tax|income tax|corporate tax|property tax|payroll tax|excise|tax(es)? (payable|expense|accrual|payment|remittance)|impuestos?|impostos?|steuern?|taxes?)\b'
+    unless: '\b(tax|vat|gst)\s*(service|consult|advis|work|prep|return|audit|complian|software|review|recover|credit)|trade|supplier|vendor|creditor|payables? (national|export|other)|\bap\b'
+    guard: [tax]
+  - name: tax_line
+    fields: [desc]
+    regex: '^\W*(accrued[\s-]*)?(state\s*(&|and)\s*local tax(es)?|sales\s*(&|and)?\s*(use\s*)?tax|use tax|gst|hst|pst|qst|vat|iva|tva|mwst|input tax|output tax|withholding tax|income tax|property tax|payroll tax|impuesto|imposto|umsatzsteuer|mehrwertsteuer)\b(?!\s*(service|consult|advis|work|prep|return|audit|complian|software|review|recover|credit|refund))'
+    guard: [tax]
+  - name: royalties
+    fields: [gl_desc, desc, ctx_text]
+    regex: '\b(royalt(y|ies)|regal[ií]as?|lizenzgeb[uü]hr\w*|redevances?)\b'
+    guard: [royalt]
+  - name: partner_billing
+    fields: [gl_desc, desc, ctx_text]
+    regex: '\b(joint[\s-]venture (billing|partner|recharge|cash call)|jv (billing|partner|recharge|cash call|cutback)|partner (billing|recharge|cost share|share of)|billing to partners?|cash calls?|joint interest billing|co-?venturers?|non-?operated|operator billing|working interest|cutback)\b'
+    guard: [partner, venture]
+  - name: financing_account
+    fields: [gl_desc, ctx_text]
+    regex: '\b(interest (expense|income|paid|payable|charge|cost)s?|bank (charge|fee|interest|commission)s?|loans?|borrowings?|dividends?|finance (cost|charge|lease)s?|financing|factoring|debt service|overdraft|zinsen|intereses|juros)\b'
+    guard: [bank, financ, interest]
+  - name: financing_line
+    fields: [desc]
+    regex: '^\W*(loan (repayment|interest|instal+ment)|interest (on|expense|charge|payment)|bank (charge|fee)s?|dividend|finance charge|late payment interest)\b'
+    guard: [bank, financ, interest]
+  - name: revenue
+    fields: [gl_desc, ctx_text]
+    regex: '\b(revenues?|sales (income|revenue)|turnover|customer (refund|rebate|credit|deposit)s?|accounts? receivable|trade receivables?|debtors?|umsatzerl[oö]se|ingresos por ventas)\b'
+    guard: [revenue]
+  - name: revenue_line
+    fields: [desc]
+    regex: '^\W*(customer (refund|rebate|credit note)|sales rebate|revenue share|refund to customer)\b'
+    guard: [revenue]
+  - name: payroll
+    fields: [gl_desc, ctx_text]
+    regex: '\b(salar(y|ies)|wages|payroll|pensions?( contribution)?s?|social security|garnishments?|n[oó]mina|sueldos|l[oö]hne|geh[aä]lter)\b'
+    unless: '\b(service|outsourc|software|provider|temp|agency|contract)'
+    guard: [payroll, salar]
+  - name: accounting_entries
+    fields: [gl_desc, ctx_text]
+    regex: '\b(depreciation|amorti[sz]ation|impairment|provisions? for|revaluation|(fx|exchange|currency) (gain|loss|difference)s?|write[\s-]?offs?|goodwill|equity|retained earnings|suspense|clearing account)\b'
+  - name: donations_fines
+    fields: [gl_desc, ctx_text]
+    regex: '\b(donations?|charit(y|able)|fines?( and| &)? penalt(y|ies)|penalt(y|ies))\b'
+    guard: [donation, sponsor]

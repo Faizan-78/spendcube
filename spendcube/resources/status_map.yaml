@@ -1,0 +1,6 @@
+# Generic status vocabulary (substring match, case-insensitive, first hit wins in this order).
+# A company config can override or extend it under  status_map:
+CANCELLED: [cancel, void, revers, storn, annul, deleted, withdrawn]
+NOT_APPROVED: [reject, hold, held, submit, disput, pending, draft, await, block, park, declin,
+               "not approved", unapproved, "in review", "under review", open, new, query, incomplete, error, denied]
+INCLUDE: [paid, approv, posted, cleared, settled, complete, closed, released, booked, processed, remitted, authoris, authoriz]
