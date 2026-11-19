@@ -1,0 +1,34 @@
+# Company C: oil & gas producer (Bluestem). One invoice-line file, amounts already in USD, no labels.
+company: C
+reporting_currency: USD
+
+taxonomy:
+  file: category_tree_C.csv
+  levels: [level_1, level_2, level_3, level_4]
+
+sources:
+  - name: LINES
+    file: invoice_lines.csv
+    id_column: line_id
+    fields:
+      amount: line_amount_usd          # line amount, USD, net (invoice_total_usd is the whole invoice)
+      date: invoice_date
+      alt_dates: [status_date]
+      supplier_name: supplier_name
+      description: [line_description, product_service_description]
+      item_code: product_service_code
+      item_text: [product_service_description, line_description]
+      quantity: quantity
+      invoice_number: invoice_number
+      po_line: invoice_line
+      status: status                   # Approved / Cancelled
+      gl_description: gl_account_description
+    amount: {basis: net, currency: reporting}
+    classify:
+      text: [invoice_description]
+      categorical: [submission_type, buyer_entity, uom]
+
+duplicates:
+  exact_rows: true                     # identical in every column but line_id (none found in C)
+  # no repeated-export rule: identical lines on one invoice carry different invoice_line numbers and are
+  # separate charges (one disposal fee per load, one supervisor day per line), so they all count
